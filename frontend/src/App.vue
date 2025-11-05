@@ -1,7 +1,6 @@
 <script setup>
-import { onMounted, ref } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import GameEngine from './components/GameEngine.vue';
-import { io } from "socket.io-client";
 import communicationManager from './services/communicationManager.js';
 import ListaJugadors from './components/ListaJugadors.vue';
 
@@ -10,29 +9,12 @@ const vistaActual = ref('salaEspera'); // 'salaEspera', 'lobby', 'joc'
 
 // Estat per a la connexió
 const nomJugador = ref('');
-const jugadors = ref([]);
-let socket = null;
 
-onMounted(() => {
-  // Aquí podríem inicialitzar alguna cosa si cal
-  // CANVIO LA CONEXIO DIRECTA PER FER-LA VIA communicationManager
-  //socket = io('ws://localhost:8088');
-  communicationManager.connect() //connecta al servidor
-
-  /*ABANS TENIA AIXO
-  socket.on('updatePlayerList', (data) => {
-    console.log("Llista de jugadors rebuda: ", data);
-    jugadors.value = data;
-  }); 
-  */
- /*ARA TINC AIXI */
- communicationManager.onUpdatePlayerList((data) => {
-    console.log("Llista de jugadors rebuda: ", data);
-    jugadors.value = data;
-  })
+const countdown = ref(null);
+let countdownInterval = null;
+let gameStartingListener = null;
 
 
-});
 
  
 function connectarAlServidor() {
@@ -41,13 +23,66 @@ function connectarAlServidor() {
     return;
   }
 
-  //ABANS TENIA AIXO
-  // socket.emit('setPlayerName', nomJugador.value);
-
-  //ARA HO TINC AIXI:
-  communicationManager.enviarUsername(nomJugador.value)
+  // Utilitzem el nou mètode del singleton, assumint una sala comuna anomenada 'lobby'
+  communicationManager.unirSala(nomJugador.value, 'lobby');
   vistaActual.value = 'lobby';
 }
+
+function iniciarCompteEnrere(event) {
+  if (!event) {
+    return;
+  }
+
+  const salaEvent = event.room || null;
+  const salaActual = communicationManager.state.room || null;
+  if (salaEvent && salaActual && salaEvent !== salaActual) {
+    return;
+  }
+
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
+    countdownInterval = null;
+  }
+
+  const valorInicial = Number(event.countdown) || 3;
+  countdown.value = valorInicial;
+
+  countdownInterval = setInterval(() => {
+    if (countdown.value <= 1) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+      countdown.value = null;
+      vistaActual.value = 'joc';
+      return;
+    }
+    countdown.value -= 1;
+  }, 1000);
+}
+
+function demanarIniciPartida() {
+  if (countdown.value !== null) {
+    return;
+  }
+  communicationManager.requestGameStart();
+}
+
+onMounted(() => {
+  gameStartingListener = (payload) => {
+    iniciarCompteEnrere(payload);
+  };
+  communicationManager.socket.on('gameStarting', gameStartingListener);
+});
+
+onUnmounted(() => {
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
+    countdownInterval = null;
+  }
+  if (gameStartingListener) {
+    communicationManager.socket.off('gameStarting', gameStartingListener);
+    gameStartingListener = null;
+  }
+});
 
 </script>
 
@@ -63,13 +98,15 @@ function connectarAlServidor() {
     <!-- VISTA 2: LOBBY -->
     <div v-else-if="vistaActual === 'lobby'" class="vista-container">
       <h2>Jugadors Connectats</h2>
-      <ListaJugadors :jugadors="jugadors" />
-      <button @click="vistaActual = 'joc'">Comença a Jugar!</button>
+      <ListaJugadors />
+      <button @click="demanarIniciPartida" :disabled="countdown !== null">
+        {{ countdown !== null ? `Comença en ${countdown}` : 'Comença a Jugar!' }}
+      </button>
     </div>
 
     <!-- VISTA 3: JOC -->
     <div v-else-if="vistaActual === 'joc'" class="vista-container">
-      <ListaJugadors :jugadors="jugadors" />
+      <ListaJugadors />
       <GameEngine />
     </div>
   </main>

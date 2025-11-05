@@ -1,11 +1,11 @@
 <script setup>
-import { ref } from 'vue'
-defineProps(['jugadors'])
+
+import communicationManager from '../services/communicationManager.js';
 </script>
 
 <template>
   <div class="jugadors-container">
-    <span v-for="jugador in jugadors" :key="jugador.id" class="jugador-item">
+    <span v-for="jugador in communicationManager.state.jugadors" :key="jugador.id">
       {{ jugador.name }}
     </span>
   </div>

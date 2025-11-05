@@ -1,34 +1,102 @@
-// src/services/communicationManager.js
 import { io } from 'socket.io-client';
+import { reactive } from 'vue';
 
-const URL =
-  import.meta.env.MODE === 'development'
-    ? 'http://localhost:8088'
-    : 'http://aperezh.daw.inspedralbes.cat:22200'  // 🔁 canvia això pel teu domini real
+class CommunicationManager {
+  constructor() {
+    this.state = reactive({
+      jugadors: [],
+      room: '',
+      roomStats: [],
+      gameState: null,
+      error: null,
+    });
 
-// Creem una única instància del socket per a tota l'aplicació
-const socket = io(URL, { autoConnect: false })
+    // Connecta amb el servidor de Socket.IO
+    this.socket = io('http://localhost:8088'); // Ajusta la URL si és necessari
 
-// Aquest objecte serà la nostra API per comunicar-nos
-const communicationManager = {
-  // Funció per connectar-se i enviar el nom
-  connect() {
-    socket.connect();
-  },
-
-  // Funcions per ESCOLTAR esdeveniments del servidorç
-  // Fem servir un callback!!! 
-
-  onUpdatePlayerList(callback) {
-    socket.on('updatePlayerList', callback);
-  },
-
-  // Funcions per ENVIAR esdeveniments al servidor
-  enviarUsername(playerName){
-    socket.emit('setPlayerName', playerName);
+    // Assigna els listeners una sola vegada
+    this.setupListeners();
   }
 
-  // Aquí anirien la resta de funcions per a 'emit' i 'on'
-};
+  setupListeners() {
+    this.socket.on('connect', () => {
+      console.log('Connectat al servidor de Socket.IO amb id:', this.socket.id);
+    });
+
+    this.socket.on('disconnect', () => {
+      console.log('Desconnectat del servidor de Socket.IO');
+    });
+
+    this.socket.on('updatePlayerList', (playerList) => {
+      console.log('Rebuda llista de jugadors:', playerList);
+      this.state.jugadors = playerList;
+    });
+
+    this.socket.on('updateRoomStats', (stats) => {
+      console.log('Actualització d\'estadístiques de sales:', stats);
+      this.state.roomStats = stats;
+    });
+
+    this.socket.on('roomJoined', (room) => {
+      console.log('Unit a la sala:', room);
+      this.state.room = room;
+    });
+
+    this.socket.on('error', (errorMessage) => {
+      console.error('Error del servidor:', errorMessage);
+      this.state.error = errorMessage;
+    });
+
+    this.socket.on('gameStateUpdate', (gameState) => {
+      console.log('Rebut estat del joc:', gameState);
+      this.state.gameState = gameState;
+    });
+
+    // Els components s'encarreguen de subscriure's a altres events específics
+    // (com ara playerKeyPressed o gameStarting) per gestionar-los localment.
+
+  }
+
+  // Mètodes per interactuar amb el servidor
+
+  /**
+   * Envia el nom del jugador per unir-se a una sala.
+   */
+  unirSala(playerName, roomCode) {
+    this.socket.emit('joinRoom', { name: playerName, room: roomCode });
+    console.log('Enviada petició d\'unió', playerName, roomCode);
+  }
+
+  setPlayerName(newName) {
+    this.socket.emit('setPlayerName', newName);
+    console.log('Enviada actualització de nom', newName);
+  }
+
+  /**
+   * Envia el progrés del jugador durant el joc.
+   */
+  enviarProgres(progressData) {
+    this.socket.emit('playerProgress', progressData);
+  }
+
+  /**
+   * Envia la tecla enviada
+   */
+  sendKeyPress(key) {
+    this.socket.emit('playerKeyPressed', { key });
+  }
+
+  /**
+   * Demano començar el joc
+   */
+  requestGameStart() {
+    this.socket.emit('requestGameStart');
+  }
+
+  // Pots afegir més mètodes per a altres interaccions
+}
+
+// Exporta una única instància de la classe
+const communicationManager = new CommunicationManager();
 
 export default communicationManager;

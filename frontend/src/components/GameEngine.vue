@@ -22,7 +22,10 @@
           <span v-for="lletra in fila" 
           :key="lletra" 
           class="keyboard-key" 
-          :class="{'tecla-premuda':lletra==teclaPremuda}">
+          :class="{
+            'tecla-premuda': lletra === teclaPremuda,
+            'tecla-remota': lletra === teclaRemota
+          }">
             {{ lletra }}
           </span>
         </div>
@@ -51,6 +54,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
+import communicationManager from '../services/communicationManager.js';
 
 const estatDelJoc = ref({
   //contador d'errors per a la paraula actual
@@ -78,13 +82,22 @@ const filesDelTeclat = ref([
 ]);
 
 const teclaPremuda = ref('');
+const teclaRemota = ref('');
+const teclesDisponibles = new Set(filesDelTeclat.value.flat());
+let remoteKeyTimeout = null;
+let remoteKeyListener = null;
 
 let handleKeyDown=function(event) {
-  teclaPremuda.value = event.key.toUpperCase();
+  const key = event.key.toUpperCase();
+  teclaPremuda.value = key;
   //NETEGEM EL VALOR DE LA TECLA PREMUDA DESPRES DE 100ms
   setTimeout(() => {
     teclaPremuda.value = '';
   }, 100);
+
+  if (teclesDisponibles.has(key)) {
+    communicationManager.sendKeyPress(key);
+  }
 
   
   console.log("Tecla premuda: ", teclaPremuda.value);
@@ -93,12 +106,46 @@ let handleKeyDown=function(event) {
 
 
 onMounted(() => {
-    window.addEventListener('keydown', handleKeyDown);
+  window.addEventListener('keydown', handleKeyDown);
+
+  remoteKeyListener = (payload) => {
+    if (!payload || !payload.key) {
+      return;
+    }
+
+    const key = String(payload.key).toUpperCase();
+    if (!teclesDisponibles.has(key)) {
+      return;
+    }
+
+    if (payload.playerId && payload.playerId === communicationManager.socket.id) {
+      return;
+    }
+
+    teclaRemota.value = key;
+    if (remoteKeyTimeout) {
+      clearTimeout(remoteKeyTimeout);
+    }
+    remoteKeyTimeout = setTimeout(() => {
+      teclaRemota.value = '';
+      remoteKeyTimeout = null;
+    }, 60);
+  };
+
+  communicationManager.socket.on('playerKeyPressed', remoteKeyListener);
 });
 
 onUnmounted(() => {
-   window.removeEventListener('keydown', handleKeyDown);
-})
+  window.removeEventListener('keydown', handleKeyDown);
+  if (remoteKeyTimeout) {
+    clearTimeout(remoteKeyTimeout);
+    remoteKeyTimeout = null;
+  }
+  if (remoteKeyListener) {
+    communicationManager.socket.off('playerKeyPressed', remoteKeyListener);
+    remoteKeyListener = null;
+  }
+});
 
 
 //getClasseLletra(indexLletra). Aquesta funció rebrà l'índex de la lletra que s'està renderitzant i haurà de retornar un string: 'lletra-correcta', 'lletra-incorrecta', o un string buit ''.
@@ -341,5 +388,12 @@ body {
   color: #2c2e31;
   transform: translateY(2px);
   box-shadow: none;
+}
+
+.tecla-remota {
+  background-color: #4caf50;
+  color: #1e1f22;
+  box-shadow: none;
+  transform: translateY(1px);
 }
 </style>
