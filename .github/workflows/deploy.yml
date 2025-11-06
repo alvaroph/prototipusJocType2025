@@ -1,0 +1,30 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches:
+      - main  # ejecuta el deploy solo al hacer push a main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy to server via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd /home/alvaroph
+            if [ ! -d "prototipusJocType2025" ]; then
+              git clone https://github.com/alvaroph/prototipusJocType2025.git
+            fi
+            cd prototipusJocType2025
+            git pull origin main
+            docker compose down
+            docker compose up -d --build
