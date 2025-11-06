@@ -5,9 +5,36 @@ import { Server } from 'socket.io';
 
 var app = express();
 var server = http.createServer(app);
+var ORIGENS_PERMESOS = (process.env.ALLOWED_ORIGINS || '*')
+  .split(',')
+  .map(function(origen) { return origen.trim(); })
+  .filter(Boolean);
+
+if (ORIGENS_PERMESOS.length === 0) {
+  ORIGENS_PERMESOS = ['*'];
+}
+
+function validacioCors(origenSolicitat, callback) {
+  if (ORIGENS_PERMESOS.indexOf('*') !== -1) {
+    return callback(null, true);
+  }
+
+  if (!origenSolicitat) {
+    return callback(null, true);
+  }
+
+  if (ORIGENS_PERMESOS.indexOf(origenSolicitat) !== -1) {
+    return callback(null, true);
+  }
+
+  return callback(new Error('Origen no permès: ' + origenSolicitat));
+}
+
 const io = new Server(server, {
   cors: {
-    origin: '*', // Obert durant el desenvolupament; restringeix en producció
+    origin: validacioCors,
+    methods: ['GET', 'POST'],
+    credentials: true,
   },
 });
 

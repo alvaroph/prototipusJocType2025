@@ -92,7 +92,7 @@ onUnmounted(() => {
     <div v-if="vistaActual === 'salaEspera'" class="vista-container">
       <h1>Type Racer Royale</h1>
       <input type="text" v-model="nomJugador" placeholder="Introdueix el teu nom" />
-      <button @click="connectarAlServidor">Entra al Lobby Alvaro</button>
+      <button @click="connectarAlServidor">Entra al Lobby </button>
     </div>
 
     <!-- VISTA 2: LOBBY -->
