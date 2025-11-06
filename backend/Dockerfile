@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install --production --no-audit --no-fund
 
-# Copy application source
+# Copy application source  
 COPY . .
 
 EXPOSE 8088
