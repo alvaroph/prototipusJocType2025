@@ -8,7 +8,10 @@ const DEFAULT_SOCKET_URL = (() => {
   }
 
   if (typeof window !== 'undefined' && window.location) {
-    return window.location.origin.replace(/\/$/, '');
+    const { hostname } = window.location;
+    if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      return '';
+    }
   }
 
   return 'http://localhost:8088';
@@ -25,7 +28,7 @@ class CommunicationManager {
     });
 
     // Connecta amb el servidor de Socket.IO
-    this.socket = io(DEFAULT_SOCKET_URL);
+    this.socket = DEFAULT_SOCKET_URL ? io(DEFAULT_SOCKET_URL) : io();
 
     // Assigna els listeners una sola vegada
     this.setupListeners();
