@@ -1,6 +1,19 @@
 import { io } from 'socket.io-client';
 import { reactive } from 'vue';
 
+const DEFAULT_SOCKET_URL = (() => {
+  const fromEnv = (import.meta.env?.VITE_SOCKET_URL || '').trim();
+  if (fromEnv) {
+    return fromEnv.replace(/\/$/, '');
+  }
+
+  if (typeof window !== 'undefined' && window.location) {
+    return window.location.origin.replace(/\/$/, '');
+  }
+
+  return 'http://localhost:8088';
+})();
+
 class CommunicationManager {
   constructor() {
     this.state = reactive({
@@ -12,7 +25,7 @@ class CommunicationManager {
     });
 
     // Connecta amb el servidor de Socket.IO
-    this.socket = io('http://localhost:8088'); // Ajusta la URL si és necessari
+    this.socket = io(DEFAULT_SOCKET_URL);
 
     // Assigna els listeners una sola vegada
     this.setupListeners();
