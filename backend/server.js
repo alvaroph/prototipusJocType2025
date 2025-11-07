@@ -1,201 +1,222 @@
-// servidor.js en ES5
+// Servidor molt simplificat pensat per a intuir ràpidament l'estat compartit
 import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
 
-var app = express();
-var server = http.createServer(app);
+const app = express();
+const server = http.createServer(app);
 const io = new Server(server, {
-  cors: {
-    origin: '*', // Obert durant el desenvolupament; restringeix en producció
-  },
+  cors: { origin: '*' },
 });
 
-var SALAS_POR_DEFECTO = ['general', 'arena', 'practica'];
-var jugadores = new Map(); // socketId -> { id, nombre, sala }
-var salas = new Map(); // nombreSala -> Set<socketId>
-var progresos = new Map(); // socketId -> { playerId, room, progress }
+// ---------------------------
+// Estructures bàsiques
+// ---------------------------
+// rooms => [{ name: 'general', members: ['socketId', ...] }]
+// players => [{ id, name, room, streak }]
+const rooms = [];
+const players = [];
+const DEFAULT_ROOMS = ['general', 'arena', 'practica'];
+const STREAK_TARGET = 2;
 
-SALAS_POR_DEFECTO.forEach(function(nombreSala) {
-  salas.set(nombreSala, new Set());
-});
+for (let i = 0; i < DEFAULT_ROOMS.length; i += 1) {
+  rooms.push({ name: DEFAULT_ROOMS[i], members: [] });
+}
 
-/**
- * Asegura que una sala exista. Si no, la crea.
- * @param {string} nombreSala - El nombre de la sala.
- * @returns {Set<string>} El Set de miembros de la sala.
- */
-function asegurarSala(nombreSala) {
-  if (!salas.has(nombreSala)) {
-    salas.set(nombreSala, new Set());
+function getRoom(roomName) {
+  for (let i = 0; i < rooms.length; i += 1) {
+    if (rooms[i].name === roomName) {
+      return rooms[i];
+    }
   }
-  return salas.get(nombreSala);
+  return null;
 }
 
-/**
- * Obtiene la lista de miembros de una sala específica.
- * @param {string} nombreSala - El nombre de la sala.
- * @returns {Array<{id: string, nombre: string}>} La lista de miembros.
- */
-function obtenerMiembrosSala(nombreSala) {
-  var idsMiembros = salas.get(nombreSala);
-  if (!idsMiembros) return [];
-  return Array.from(idsMiembros)
-    .map(function(id) { return jugadores.get(id); })
-    .filter(Boolean)
-    .map(function(jugador) { return { id: jugador.id, name: jugador.name }; });
+function ensureRoom(roomName) {
+  let room = getRoom(roomName);
+  if (!room) {
+    room = { name: roomName, members: [] };
+    rooms.push(room);
+  }
+  return room;
 }
 
-/**
- * Obtiene las estadísticas de todas las salas (nombre y número de jugadores).
- * @returns {Array<{room: string, count: number}>}
- */
-function obtenerEstadisticasSalas() {
-  return Array.from(salas.entries()).map(function(entry) {
-    var nombreSala = entry[0];
-    var idsMiembros = entry[1];
-    return { room: nombreSala, count: idsMiembros.size };
-  });
+function getPlayer(socketId) {
+  for (let i = 0; i < players.length; i += 1) {
+    if (players[i].id === socketId) {
+      return players[i];
+    }
+  }
+  return null;
 }
 
-/**
- * Emite la lista de jugadores a todos los clientes en una sala.
- * @param {string} nombreSala - El nombre de la sala.
- */
-function emitirListaJugadoresSala(nombreSala) {
-  io.to(nombreSala).emit('updatePlayerList', obtenerMiembrosSala(nombreSala));
+function removeFromRoom(roomName, socketId) {
+  const room = getRoom(roomName);
+  if (!room) {
+    return;
+  }
+  const members = room.members;
+  for (let i = members.length - 1; i >= 0; i -= 1) {
+    if (members[i] === socketId) {
+      members.splice(i, 1);
+    }
+  }
 }
 
-/**
- * Emite las estadísticas de todas las salas a todos los clientes conectados.
- */
-function emitirEstadisticasSalasGlobal() {
-  io.emit('updateRoomStats', obtenerEstadisticasSalas());
+function addToRoom(roomName, socketId) {
+  const room = ensureRoom(roomName);
+  // Evitem duplicats de manera molt directa
+  removeFromRoom(roomName, socketId);
+  room.members.push(socketId);
 }
 
-/**
- * Emite las estadísticas de las salas a un socket específico.
- * @param {Socket} socket - El socket del cliente.
- */
-function emitirEstadisticasSocket(socket) {
-  socket.emit('updateRoomStats', obtenerEstadisticasSalas());
+function buildPlayerList(roomName) {
+  const room = getRoom(roomName);
+  const result = [];
+  if (!room) {
+    return result;
+  }
+  for (let i = 0; i < room.members.length; i += 1) {
+    const player = getPlayer(room.members[i]);
+    if (player) {
+      result.push({ id: player.id, name: player.name });
+    }
+  }
+  return result;
 }
 
-io.on('connection', function(socket) {
-  console.log("Un usuario se ha conectado: " + socket.id);
-  emitirEstadisticasSocket(socket);
+function buildRoomStats() {
+  const stats = [];
+  for (let i = 0; i < rooms.length; i += 1) {
+    stats.push({ room: rooms[i].name, count: rooms[i].members.length });
+  }
+  return stats;
+}
 
-  socket.on('joinRoom', function(datos) {
-    var nombreJugador = (datos.name || datos.playerName || '').trim() || 'Jugador-' + socket.id.slice(-4);
-    var nombreSala = (datos.room || '').trim() || 'general';
-    var datosAnteriores = jugadores.get(socket.id);
-    console.log(nombreJugador + " quiere unirse a la sala " + nombreSala)
+function broadcastRoomStats() {
+  io.emit('updateRoomStats', buildRoomStats());
+}
 
-    if (datosAnteriores && datosAnteriores.room) {
-      var miembrosSalaAnterior = salas.get(datosAnteriores.room);
-      if (miembrosSalaAnterior) {
-        miembrosSalaAnterior.delete(socket.id);
-      }
-      socket.leave(datosAnteriores.room);
-      if (datosAnteriores.room !== nombreSala) {
-        emitirListaJugadoresSala(datosAnteriores.room);
-      }
+function broadcastRoomPlayers(roomName) {
+  io.to(roomName).emit('updatePlayerList', buildPlayerList(roomName));
+}
+
+function removePlayer(socketId) {
+  for (let i = players.length - 1; i >= 0; i -= 1) {
+    if (players[i].id === socketId) {
+      players.splice(i, 1);
+    }
+  }
+}
+
+io.on('connection', (socket) => {
+  socket.emit('updateRoomStats', buildRoomStats());
+
+  socket.on('joinRoom', (payload) => {
+    const rawName = payload && payload.name ? String(payload.name) : '';
+    const name = rawName.trim() ? rawName.trim() : 'Jugador-' + socket.id.slice(-4);
+    const rawRoom = payload && payload.room ? String(payload.room) : '';
+    const roomName = rawRoom.trim() ? rawRoom.trim() : 'general';
+
+    let player = getPlayer(socket.id);
+    if (!player) {
+      player = { id: socket.id, name, room: roomName, streak: 0 };
+      players.push(player);
     }
 
-    var miembrosSala = asegurarSala(nombreSala);
-    miembrosSala.add(socket.id);
-    jugadores.set(socket.id, { id: socket.id, name: nombreJugador, room: nombreSala });
-    socket.join(nombreSala);
-
-    emitirListaJugadoresSala(nombreSala);
-    emitirEstadisticasSalasGlobal();
-    socket.emit('roomJoined', nombreSala);
-  });
-
-  socket.on('setPlayerName', function(nombre) {
-    var actual = jugadores.get(socket.id);
-    if (!actual) return;
-    actual.name = (nombre || '').trim() || actual.name;
-    jugadores.set(socket.id, actual);
-    if (actual.room) {
-      emitirListaJugadoresSala(actual.room);
-      emitirEstadisticasSalasGlobal();
+    if (player.room) {
+      removeFromRoom(player.room, socket.id);
+      socket.leave(player.room);
     }
+
+    player.name = name;
+    player.room = roomName;
+    player.streak = 0;
+
+    addToRoom(roomName, socket.id);
+    socket.join(roomName);
+
+    broadcastRoomPlayers(roomName);
+    broadcastRoomStats();
+    socket.emit('roomJoined', roomName);
   });
 
-  socket.on('playerProgress', function(progressData) {
-    var jugador = jugadores.get(socket.id);
-    if (!jugador || !jugador.room) {
-      socket.emit('error', 'No estás en una sala activa.');
+  socket.on('playerProgress', (progressData) => {
+    const player = getPlayer(socket.id);
+    if (!player) {
       return;
     }
-
-    var progresoNormalizado = {
+    const payload = {
       playerId: socket.id,
-      room: jugador.room,
+      room: player.room,
       progress: progressData || {},
     };
-
-    progresos.set(socket.id, progresoNormalizado);
-    io.to(jugador.room).emit('gameStateUpdate', progresoNormalizado);
+    io.to(player.room).emit('gameStateUpdate', payload);
   });
 
-  socket.on('requestGameStart', function() {
-    var jugador = jugadores.get(socket.id);
-    if (!jugador || !jugador.room) {
-      socket.emit('error', 'No estás en una sala activa.');
+  socket.on('requestGameStart', () => {
+    const player = getPlayer(socket.id);
+    if (!player) {
       return;
     }
-
-    io.to(jugador.room).emit('gameStarting', {
-      room: jugador.room,
+    io.to(player.room).emit('gameStarting', {
+      room: player.room,
       initiatedBy: socket.id,
       countdown: 3,
       at: Date.now(),
     });
   });
 
-  socket.on('playerKeyPressed', function(datos) {
-    var jugador = jugadores.get(socket.id);
-    if (!jugador || !jugador.room) {
-      socket.emit('error', 'No estás en una sala activa.');
+  socket.on('playerKeyPressed', (data) => {
+    const player = getPlayer(socket.id);
+    if (!player || !data || !data.key) {
       return;
     }
-
-    var tecla = '';
-    if (datos && typeof datos.key === 'string') {
-      tecla = datos.key.trim().toUpperCase();
-    }
-
-    if (!tecla) {
+    const cleanKey = String(data.key).trim().toUpperCase();
+    if (!cleanKey) {
       return;
     }
-
-    socket.to(jugador.room).emit('playerKeyPressed', {
+    socket.to(player.room).emit('playerKeyPressed', {
       playerId: socket.id,
-      key: tecla,
+      key: cleanKey,
     });
   });
 
-  socket.on('disconnect', function() {
-    console.log("El usuario " + socket.id + " se ha desconectado");
-    var jugador = jugadores.get(socket.id);
-    jugadores.delete(socket.id);
-    progresos.delete(socket.id);
-
-    if (jugador && jugador.room) {
-      var miembrosSala = salas.get(jugador.room);
-      if (miembrosSala) {
-        miembrosSala.delete(socket.id);
-      }
-      emitirListaJugadoresSala(jugador.room);
+  socket.on('wordCompleted', (result) => {
+    const player = getPlayer(socket.id);
+    if (!player) {
+      return;
     }
 
-    emitirEstadisticasSalasGlobal();
+    const errors = result && typeof result.errors === 'number' ? result.errors : 0;
+    if (errors === 0) {
+      player.streak += 1;
+      if (player.streak % STREAK_TARGET === 0) {
+        socket.to(player.room).emit('playerStreak', {
+          playerId: socket.id,
+          name: player.name,
+          streak: player.streak,
+          target: STREAK_TARGET,
+          word: result && result.word ? result.word : undefined,
+        });
+      }
+    } else {
+      player.streak = 0;
+    }
+  });
+
+  socket.on('disconnect', () => {
+    const player = getPlayer(socket.id);
+    if (player) {
+      removeFromRoom(player.room, socket.id);
+      removePlayer(socket.id);
+      broadcastRoomPlayers(player.room);
+    }
+    broadcastRoomStats();
   });
 });
 
-var PORT = process.env.PORT || 8088;
+const PORT = process.env.PORT || 8088;
 server.listen(PORT, () => {
-  console.log("Servidor Socket.IO escuchando en el puerto " + PORT);
+  console.log('Servidor Socket.IO escoltant al port ' + PORT);
 });

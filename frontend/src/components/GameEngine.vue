@@ -41,6 +41,12 @@
     </div>
     <div class="stats-panel">
       <h3>Estadístiques</h3>
+      <div class="stat-item stat-streak">
+        <span>Racha perfecta</span>
+        <span class="stat-details">
+          <span class="stat-streak-count">{{ perfectWordsStreak }}</span>
+        </span>
+      </div>
       <div v-for="(actual, index) in estatDelJoc.estadistiques" :key="index" class="stat-item">
         <span>{{ actual.paraula }}</span>
         <span class="stat-details">
@@ -48,6 +54,7 @@
           <span class="stat-errors" :class="{ 'no-errors': actual.errors === 0 }">{{ actual.errors }} errors</span>
         </span>
       </div>
+      <RealtimeNotifications />
     </div>
   </div>
 </template>
@@ -55,6 +62,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import communicationManager from '../services/communicationManager.js';
+import RealtimeNotifications from './RealtimeNotifications.vue';
 
 const estatDelJoc = ref({
   //contador d'errors per a la paraula actual
@@ -86,6 +94,7 @@ const teclaRemota = ref('');
 const teclesDisponibles = new Set(filesDelTeclat.value.flat());
 let remoteKeyTimeout = null;
 let remoteKeyListener = null;
+const perfectWordsStreak = ref(0);
 
 let handleKeyDown=function(event) {
   const key = event.key.toUpperCase();
@@ -199,17 +208,31 @@ function validarProgres() {
 
   // Comprovem si la paraula escrita és igual a la paraula activa
   if (estatDelJoc.value.textEntrat === paraulaActiva.value.text) {
+    const paraulaActualText = paraulaActiva.value.text;
+    const errorsParaula = estatDelJoc.value.contadorErrors;
     const tempsTrigat = Date.now() - tempsIniciParaula;
-    
+
     // Desem les estadístiques
     estatDelJoc.value.estadistiques.push({
-      paraula: paraulaActiva.value.text,
+      paraula: paraulaActualText,
       temps: tempsTrigat,
-      errors: estatDelJoc.value.contadorErrors,
+      errors: errorsParaula,
     });
 
     // Marquem la paraula com a completada
     paraulaActiva.value.estat = 'completada';
+
+    if (errorsParaula === 0) {
+      perfectWordsStreak.value += 1;
+    } else {
+      perfectWordsStreak.value = 0;
+    }
+
+    communicationManager.reportWordResult({
+      word: paraulaActualText,
+      errors: errorsParaula,
+      duration: tempsTrigat,
+    });
 
     // Passem a la següent paraula
     estatDelJoc.value.indexParaulaActiva++;
@@ -348,6 +371,17 @@ body {
   justify-content: space-between;
   margin-bottom: 0.75rem;
   font-size: 0.9rem;
+}
+
+.stat-streak {
+  border-bottom: 1px solid rgba(100, 102, 105, 0.4);
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.stat-streak-count {
+  font-weight: 600;
+  color: #e2b714;
 }
 
 .stat-details {

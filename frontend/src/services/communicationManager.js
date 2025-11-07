@@ -1,21 +1,9 @@
 import { io } from 'socket.io-client';
 import { reactive } from 'vue';
 
-const DEFAULT_SOCKET_URL = (() => {
-  const fromEnv = (import.meta.env?.VITE_SOCKET_URL || '').trim();
-  if (fromEnv) {
-    return fromEnv.replace(/\/$/, '');
-  }
-
-  if (typeof window !== 'undefined' && window.location) {
-    const { hostname } = window.location;
-    if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
-      return '';
-    }
-  }
-
-  return 'http://localhost:8088';
-})();
+const DEFAULT_SOCKET_URL = (import.meta.env?.VITE_SOCKET_URL || '').trim().replace(/\/$/, '');
+const DEFAULT_STREAK_TARGET = Number((import.meta.env?.VITE_STREAK_TARGET || '').trim()) || 3;
+const NOTIFICATION_LIFETIME_MS = Number((import.meta.env?.VITE_NOTIFICATION_MS || '').trim()) || 5000;
 
 class CommunicationManager {
   constructor() {
@@ -25,6 +13,9 @@ class CommunicationManager {
       roomStats: [],
       gameState: null,
       error: null,
+      playerName: '',
+      notifications: [],
+      streakTarget: DEFAULT_STREAK_TARGET,
     });
 
     // Connecta amb el servidor de Socket.IO
@@ -68,6 +59,21 @@ class CommunicationManager {
       this.state.gameState = gameState;
     });
 
+    this.socket.on('playerStreak', (payload) => {
+      if (!payload || !payload.name) {
+        return;
+      }
+
+      const streak = Number(payload.streak) || 0;
+      this.pushNotification({
+        type: 'streak',
+        name: payload.name,
+        streak,
+        target: Number(payload.target) || this.state.streakTarget,
+        word: payload.word,
+      });
+    });
+
     // Els components s'encarreguen de subscriure's a altres events específics
     // (com ara playerKeyPressed o gameStarting) per gestionar-los localment.
 
@@ -81,6 +87,7 @@ class CommunicationManager {
   unirSala(playerName, roomCode) {
     this.socket.emit('joinRoom', { name: playerName, room: roomCode });
     console.log('Enviada petició d\'unió', playerName, roomCode);
+    this.state.playerName = playerName;
   }
 
   setPlayerName(newName) {
@@ -100,6 +107,43 @@ class CommunicationManager {
    */
   sendKeyPress(key) {
     this.socket.emit('playerKeyPressed', { key });
+  }
+
+  reportWordResult(result) {
+    const payload = {
+      word: result?.word || '',
+      errors: typeof result?.errors === 'number' ? result.errors : 0,
+      duration: typeof result?.duration === 'number' ? result.duration : undefined,
+    };
+
+    this.socket.emit('wordCompleted', payload);
+
+  }
+
+  pushNotification(notification) {
+    const id = `notif-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const entry = {
+      id,
+      type: notification?.type || 'info',
+      name: notification?.name || '',
+      streak: notification?.streak || 0,
+      target: notification?.target || this.state.streakTarget,
+      word: notification?.word,
+      selfGenerated: Boolean(notification?.selfGenerated),
+    };
+
+    this.state.notifications.push(entry);
+
+    setTimeout(() => {
+      this.clearNotification(id);
+    }, NOTIFICATION_LIFETIME_MS);
+  }
+
+  clearNotification(id) {
+    const index = this.state.notifications.findIndex((notification) => notification.id === id);
+    if (index !== -1) {
+      this.state.notifications.splice(index, 1);
+    }
   }
 
   /**
