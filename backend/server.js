@@ -13,11 +13,25 @@ const io = new Server(server, {
 // Estructures bàsiques
 // ---------------------------
 // rooms => [{ name: 'general', members: ['socketId', ...] }]
-// players => [{ id, name, room, streak }]
+// players => [{ id, name, room, streak, progress: { charPercent, wordsCompleted, totalWords }, finished: false }]
 const rooms = [];
 const players = [];
 const DEFAULT_ROOMS = ['general', 'arena', 'practica'];
 const STREAK_TARGET = 2;
+const diccionarioPartidas = [
+  {
+    tema: 'Tecnologia',
+    palabras: ['component', 'javascript', 'framework', 'render', 'teclat'],
+  },
+  {
+    tema: 'Meteorologia',
+    palabras: ['tempesta', 'barometre', 'humitat', 'torb', 'cumulonimbus'],
+  },
+  {
+    tema: 'Mitologia',
+    palabras: ['pegas', 'minotaure', 'olimp', 'tro', 'sirena'],
+  },
+];
 
 for (let i = 0; i < DEFAULT_ROOMS.length; i += 1) {
   rooms.push({ name: DEFAULT_ROOMS[i], members: [] });
@@ -109,6 +123,40 @@ function removePlayer(socketId) {
   }
 }
 
+function buildRoomProgress(roomName) {
+  const room = getRoom(roomName);
+  const list = [];
+  if (!room) {
+    return list;
+  }
+  for (let i = 0; i < room.members.length; i += 1) {
+    const player = getPlayer(room.members[i]);
+    if (player) {
+      const progress = player.progress || { charPercent: 0, wordsCompleted: 0, totalWords: 0 };
+      list.push({
+        id: player.id,
+        name: player.name,
+        charPercent: progress.charPercent || 0,
+        wordsCompleted: progress.wordsCompleted || 0,
+        totalWords: progress.totalWords || 0,
+      });
+    }
+  }
+  return list;
+}
+
+function broadcastRoomProgress(roomName) {
+  io.to(roomName).emit('playerProgressSnapshot', buildRoomProgress(roomName));
+}
+
+function pickDictionary() {
+  if (!diccionarioPartidas.length) {
+    return { tema: 'General', palabras: ['alpha', 'beta', 'gamma', 'delta', 'epsilon'] };
+  }
+  const index = Math.floor(Math.random() * diccionarioPartidas.length);
+  return diccionarioPartidas[index];
+}
+
 io.on('connection', (socket) => {
   socket.emit('updateRoomStats', buildRoomStats());
 
@@ -120,7 +168,7 @@ io.on('connection', (socket) => {
 
     let player = getPlayer(socket.id);
     if (!player) {
-      player = { id: socket.id, name, room: roomName, streak: 0 };
+      player = { id: socket.id, name, room: roomName, streak: 0, progress: { charPercent: 0, wordsCompleted: 0, totalWords: 0 }, finished: false };
       players.push(player);
     }
 
@@ -132,12 +180,15 @@ io.on('connection', (socket) => {
     player.name = name;
     player.room = roomName;
     player.streak = 0;
+    player.progress = { charPercent: 0, wordsCompleted: 0, totalWords: 0 };
+    player.finished = false;
 
     addToRoom(roomName, socket.id);
     socket.join(roomName);
 
     broadcastRoomPlayers(roomName);
     broadcastRoomStats();
+    broadcastRoomProgress(roomName);
     socket.emit('roomJoined', roomName);
   });
 
@@ -146,12 +197,18 @@ io.on('connection', (socket) => {
     if (!player) {
       return;
     }
-    const payload = {
-      playerId: socket.id,
-      room: player.room,
-      progress: progressData || {},
+    const current = player.progress || { charPercent: 0, wordsCompleted: 0, totalWords: 0 };
+    const charPercent = progressData && typeof progressData.charPercent === 'number' ? progressData.charPercent : current.charPercent;
+    const wordsCompleted = progressData && typeof progressData.wordsCompleted === 'number' ? progressData.wordsCompleted : current.wordsCompleted;
+    const totalWords = progressData && typeof progressData.totalWords === 'number' ? progressData.totalWords : current.totalWords;
+
+    player.progress = {
+      charPercent: Math.max(0, Math.min(100, Math.round(charPercent))),
+      wordsCompleted: Math.max(0, wordsCompleted),
+      totalWords: Math.max(0, totalWords),
     };
-    io.to(player.room).emit('gameStateUpdate', payload);
+
+    broadcastRoomProgress(player.room);
   });
 
   socket.on('requestGameStart', () => {
@@ -159,11 +216,14 @@ io.on('connection', (socket) => {
     if (!player) {
       return;
     }
+    const partida = pickDictionary();
     io.to(player.room).emit('gameStarting', {
       room: player.room,
       initiatedBy: socket.id,
       countdown: 3,
       at: Date.now(),
+      dictionary: partida.palabras,
+      tema: partida.tema,
     });
   });
 
@@ -200,6 +260,14 @@ io.on('connection', (socket) => {
           word: result && result.word ? result.word : undefined,
         });
       }
+      if (result && result.completedAll) {
+        player.finished = true;
+        io.to(player.room).emit('gameFinished', {
+          winnerId: player.id,
+          winnerName: player.name,
+          finishedAt: Date.now(),
+        });
+      }
     } else {
       player.streak = 0;
     }
@@ -211,6 +279,7 @@ io.on('connection', (socket) => {
       removeFromRoom(player.room, socket.id);
       removePlayer(socket.id);
       broadcastRoomPlayers(player.room);
+      broadcastRoomProgress(player.room);
     }
     broadcastRoomStats();
   });

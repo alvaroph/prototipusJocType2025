@@ -60,27 +60,59 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import communicationManager from '../services/communicationManager.js';
 import RealtimeNotifications from './RealtimeNotifications.vue';
 
+const props = defineProps({
+  diccionario: {
+    type: Array,
+    default: () => [],
+  },
+});
+
+const fallbackDiccionari = ['component', 'reactivitat', 'javascript', 'framework', 'template'];
+let tempsIniciParaula = 0;
+
+function construirParaules(diccionario) {
+  const llista = Array.isArray(diccionario) && diccionario.length ? diccionario : fallbackDiccionari;
+  const resultat = [];
+  for (let i = 0; i < llista.length; i += 1) {
+    resultat.push({ id: i + 1, text: String(llista[i]), estat: 'pendent' });
+  }
+  return resultat;
+}
+
+function reiniciarPartida(diccionario) {
+  estatDelJoc.value.paraules = construirParaules(diccionario);
+  estatDelJoc.value.indexParaulaActiva = 0;
+  estatDelJoc.value.textEntrat = '';
+  estatDelJoc.value.estadistiques = [];
+  estatDelJoc.value.contadorErrors = 0;
+  perfectWordsStreak.value = 0;
+  tempsIniciParaula = 0;
+  reportarProgres();
+}
+
 const estatDelJoc = ref({
-  //contador d'errors per a la paraula actual
-  contadorErrors: ref(0),
-  // Llista de paraules a escriure. Cada paraula és un objecte.
-  paraules: [
-    { id: 1, text: 'component', estat: 'pendent' },
-    { id: 2, text: 'reactivitat', estat: 'pendent' },
-    { id: 3, text: 'javascript', estat: 'pendent' },
-    { id: 4, text: 'framework', estat: 'pendent' },
-    { id: 5, text: 'template', estat: 'pendent' }
-  ],
-  // L'índex de la paraula que l'usuari ha d'escriure ara mateix.
+  contadorErrors: 0,
+  paraules: construirParaules(props.diccionario),
   indexParaulaActiva: 0,
-  // El text que l'usuari està introduint a l'input.
   textEntrat: '',
-  // Un array on guardarem els resultats de cada paraula.
   estadistiques: [],
+});
+
+const paraulaActiva = computed(() => {
+  return estatDelJoc.value.paraules[estatDelJoc.value.indexParaulaActiva] || { text: '', estat: 'pendent' };
+});
+
+const totalCaracters = computed(() => {
+  let total = 0;
+  const paraules = estatDelJoc.value.paraules;
+  for (let i = 0; i < paraules.length; i += 1) {
+    total += paraules[i].text.length;
+  }
+  return total || 1;
 });
 
 const filesDelTeclat = ref([
@@ -95,6 +127,14 @@ const teclesDisponibles = new Set(filesDelTeclat.value.flat());
 let remoteKeyTimeout = null;
 let remoteKeyListener = null;
 const perfectWordsStreak = ref(0);
+
+watch(
+  () => props.diccionario,
+  (nouDiccionari) => {
+    reiniciarPartida(nouDiccionari);
+  },
+  { immediate: true }
+);
 
 let handleKeyDown=function(event) {
   const key = event.key.toUpperCase();
@@ -172,20 +212,47 @@ function  getClasseLletra(indexLletra) {
   }
 }
 
-// Afegeix també una propietat computada per accedir fàcilment a la paraula activa
-const paraulaActiva = computed(() => {
-  return estatDelJoc.value.paraules[estatDelJoc.value.indexParaulaActiva];
-});
-
-// Variable per guardar el temps d'inici de cada paraula
-let tempsIniciParaula = 0;
-
 function iniciarCronometreParaula() {
   tempsIniciParaula = Date.now();
 }
 
+function comptarCaractersCorrectes() {
+  let total = 0;
+  const estadistiques = estatDelJoc.value.estadistiques;
+  for (let i = 0; i < estadistiques.length; i += 1) {
+    total += estadistiques[i].paraula.length;
+  }
+
+  const paraulaActual = paraulaActiva.value?.text || '';
+  const textEntrat = estatDelJoc.value.textEntrat || '';
+  for (let i = 0; i < textEntrat.length && i < paraulaActual.length; i += 1) {
+    if (textEntrat[i] === paraulaActual[i]) {
+      total += 1;
+    } else {
+      break;
+    }
+  }
+
+  return total;
+}
+
+function reportarProgres() {
+  const totalChars = totalCaracters.value || 1;
+  const correctes = comptarCaractersCorrectes();
+  const percent = Math.max(0, Math.min(100, Math.round((correctes / totalChars) * 100)));
+
+  communicationManager.reportProgress({
+    charPercent: percent,
+    wordsCompleted: estatDelJoc.value.estadistiques.length,
+    totalWords: estatDelJoc.value.paraules.length,
+  });
+}
+
 // Funció principal que s'executa a cada pulsació
 function validarProgres() {
+  if (!paraulaActiva.value || !paraulaActiva.value.text) {
+    return;
+  }
   
   //Anem a mirar si la lletra que acaba de picar es un error o no 
   console.log(estatDelJoc.value.textEntrat)
@@ -228,12 +295,6 @@ function validarProgres() {
       perfectWordsStreak.value = 0;
     }
 
-    communicationManager.reportWordResult({
-      word: paraulaActualText,
-      errors: errorsParaula,
-      duration: tempsTrigat,
-    });
-
     // Passem a la següent paraula
     estatDelJoc.value.indexParaulaActiva++;
     
@@ -242,15 +303,20 @@ function validarProgres() {
     tempsIniciParaula = 0;
     estatDelJoc.value.contadorErrors = 0;
 
-    // Si hi ha una següent paraula
-    if (estatDelJoc.value.indexParaulaActiva < estatDelJoc.value.paraules.length) {
-      // (Podem afegir lògica addicional aquí si volem)
-    } else {
-      // Joc acabat!
-      console.log('Joc acabat!', estatDelJoc.value.estadistiques);
-      alert("FINAL DEL JOC!");
-    }
+    const haAcabat = estatDelJoc.value.indexParaulaActiva >= estatDelJoc.value.paraules.length;
+
+    communicationManager.reportWordResult({
+      word: paraulaActualText,
+      errors: errorsParaula,
+      duration: tempsTrigat,
+      completedAll: haAcabat,
+    });
+
+    reportarProgres();
+    return;
   }
+
+  reportarProgres();
 }
 </script>
 

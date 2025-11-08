@@ -2,8 +2,8 @@ import { io } from 'socket.io-client';
 import { reactive } from 'vue';
 
 const DEFAULT_SOCKET_URL = (import.meta.env?.VITE_SOCKET_URL || '').trim().replace(/\/$/, '');
-const DEFAULT_STREAK_TARGET = Number((import.meta.env?.VITE_STREAK_TARGET || '').trim()) || 3;
-const NOTIFICATION_LIFETIME_MS = Number((import.meta.env?.VITE_NOTIFICATION_MS || '').trim()) || 5000;
+const DEFAULT_STREAK_TARGET =  2;
+const NOTIFICATION_LIFETIME_MS = 5000;
 
 class CommunicationManager {
   constructor() {
@@ -16,6 +16,8 @@ class CommunicationManager {
       playerName: '',
       notifications: [],
       streakTarget: DEFAULT_STREAK_TARGET,
+      progressSnapshot: [],
+      gameFinished: null,
     });
 
     // Connecta amb el servidor de Socket.IO
@@ -74,6 +76,16 @@ class CommunicationManager {
       });
     });
 
+    this.socket.on('playerProgressSnapshot', (progressList) => {
+      if (Array.isArray(progressList)) {
+        this.state.progressSnapshot = progressList;
+      }
+    });
+
+    this.socket.on('gameFinished', (payload) => {
+      this.state.gameFinished = payload || {};
+    });
+
     // Els components s'encarreguen de subscriure's a altres events específics
     // (com ara playerKeyPressed o gameStarting) per gestionar-los localment.
 
@@ -114,10 +126,21 @@ class CommunicationManager {
       word: result?.word || '',
       errors: typeof result?.errors === 'number' ? result.errors : 0,
       duration: typeof result?.duration === 'number' ? result.duration : undefined,
+      completedAll: Boolean(result?.completedAll),
     };
 
     this.socket.emit('wordCompleted', payload);
 
+  }
+
+  reportProgress(progress) {
+    const payload = {
+      charPercent: typeof progress?.charPercent === 'number' ? progress.charPercent : 0,
+      wordsCompleted: typeof progress?.wordsCompleted === 'number' ? progress.wordsCompleted : 0,
+      totalWords: typeof progress?.totalWords === 'number' ? progress.totalWords : 0,
+    };
+
+    this.enviarProgres(payload);
   }
 
   pushNotification(notification) {

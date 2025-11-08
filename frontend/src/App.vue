@@ -3,16 +3,21 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import GameEngine from './components/GameEngine.vue';
 import communicationManager from './services/communicationManager.js';
 import ListaJugadors from './components/ListaJugadors.vue';
+import FinalStats from './components/FinalStats.vue';
 
 // Estat per controlar quina vista es mostra
 const vistaActual = ref('salaEspera'); // 'salaEspera', 'lobby', 'joc'
 
 // Estat per a la connexió
 const nomJugador = ref('');
+const salaSeleccionada = ref('general');
 
 const countdown = ref(null);
 let countdownInterval = null;
 let gameStartingListener = null;
+let gameFinishedListener = null;
+const diccionarioPartida = ref([]);
+const temaPartida = ref('');
 
 
 
@@ -23,8 +28,7 @@ function connectarAlServidor() {
     return;
   }
 
-  // Utilitzem el nou mètode del singleton, assumint una sala comuna anomenada 'lobby'
-  communicationManager.unirSala(nomJugador.value, 'lobby');
+  communicationManager.unirSala(nomJugador.value, salaSeleccionada.value || 'general');
   vistaActual.value = 'lobby';
 }
 
@@ -38,6 +42,13 @@ function iniciarCompteEnrere(event) {
   if (salaEvent && salaActual && salaEvent !== salaActual) {
     return;
   }
+
+  if (Array.isArray(event.dictionary) && event.dictionary.length) {
+    diccionarioPartida.value = event.dictionary.slice();
+  } else {
+    diccionarioPartida.value = [];
+  }
+  temaPartida.value = event.tema || '';
 
   if (countdownInterval) {
     clearInterval(countdownInterval);
@@ -71,6 +82,11 @@ onMounted(() => {
     iniciarCompteEnrere(payload);
   };
   communicationManager.socket.on('gameStarting', gameStartingListener);
+
+  gameFinishedListener = (payload) => {
+    vistaActual.value = 'final';
+  };
+  communicationManager.socket.on('gameFinished', gameFinishedListener);
 });
 
 onUnmounted(() => {
@@ -82,6 +98,10 @@ onUnmounted(() => {
     communicationManager.socket.off('gameStarting', gameStartingListener);
     gameStartingListener = null;
   }
+  if (gameFinishedListener) {
+    communicationManager.socket.off('gameFinished', gameFinishedListener);
+    gameFinishedListener = null;
+  }
 });
 
 </script>
@@ -92,6 +112,11 @@ onUnmounted(() => {
     <div v-if="vistaActual === 'salaEspera'" class="vista-container">
       <h1>Type Racer Royale</h1>
       <input type="text" v-model="nomJugador" placeholder="Introdueix el teu nom" />
+      <select v-model="salaSeleccionada">
+        <option value="general">Sala General</option>
+        <option value="arena">Sala Arena</option>
+        <option value="practica">Sala Pràctica</option>
+      </select>
       <button @click="connectarAlServidor">Entra al Lobby </button>
     </div>
 
@@ -107,7 +132,12 @@ onUnmounted(() => {
     <!-- VISTA 3: JOC -->
     <div v-else-if="vistaActual === 'joc'" class="vista-container">
       <ListaJugadors />
-      <GameEngine />
+      <GameEngine :diccionario="diccionarioPartida" />
+    </div>
+
+    <!-- VISTA 4: FINAL -->
+    <div v-else-if="vistaActual === 'final'" class="vista-container">
+      <FinalStats @tornar="vistaActual = 'lobby'" />
     </div>
   </main>
 </template>
