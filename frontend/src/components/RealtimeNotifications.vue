@@ -82,22 +82,26 @@ function wordsPercent(player) {
 }
 
 .progress-panel {
-  background: rgba(50, 52, 55, 0.85);
-  border-radius: 8px;
-  padding: 0.75rem 1rem;
+  background: linear-gradient(160deg, rgba(64, 231, 185, 0.25), rgba(246, 195, 72, 0.35));
+  border-radius: 26px;
+  padding: 1rem 1.2rem;
   max-width: 260px;
-  color: #d1d0c5;
+  color: var(--color-ink);
+  border: 4px solid var(--color-ink);
+  box-shadow: 0 12px 0 var(--color-ink);
 }
 
 .progress-panel h4 {
   margin: 0 0 0.5rem;
   font-size: 0.95rem;
-  color: #f7ca38;
+  color: var(--color-pink);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .progress-item {
   padding: 0.4rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px dashed rgba(27, 18, 48, 0.2);
 }
 
 .progress-item:last-child {
@@ -108,6 +112,7 @@ function wordsPercent(player) {
   font-weight: 600;
   display: block;
   margin-bottom: 0.2rem;
+  color: var(--color-blue);
 }
 
 .progress-row {
@@ -119,7 +124,7 @@ function wordsPercent(player) {
 
 .progress-bar {
   flex: 1;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.7);
   border-radius: 999px;
   height: 6px;
   overflow: hidden;
@@ -127,13 +132,13 @@ function wordsPercent(player) {
 
 .progress-fill {
   height: 100%;
-  background: #e2b714;
+  background: linear-gradient(120deg, var(--color-pink), var(--color-gold));
   border-radius: 999px;
   transition: width 0.2s ease;
 }
 
 .progress-fill.words {
-  background: #4caf50;
+  background: linear-gradient(120deg, var(--color-teal), var(--color-blue));
 }
 
 .words-row {
@@ -143,15 +148,19 @@ function wordsPercent(player) {
 .progress-value {
   min-width: 48px;
   text-align: right;
+  color: var(--color-ink);
 }
 
 .notifications-panel {
-  background: rgba(50, 52, 55, 0.85);
-  border-radius: 8px;
-  padding: 0.75rem 1rem;
+  background: linear-gradient(160deg, rgba(218, 101, 249, 0.8), rgba(79, 115, 244, 0.85));
+  border-radius: 26px;
+  padding: 0.95rem 1.2rem;
   margin-top: 1rem;
   max-width: 240px;
   overflow: hidden;
+  color: #fff;
+  border: 4px solid var(--color-ink);
+  box-shadow: 0 12px 0 rgba(24, 6, 11, 0.7);
 }
 
 .notifications-list {
@@ -164,18 +173,18 @@ function wordsPercent(player) {
 }
 
 .notification-item {
-  background: rgba(226, 183, 20, 0.1);
-  border-left: 4px solid #e2b714;
+  background: rgba(246, 195, 72, 0.2);
+  border-left: 5px solid var(--color-gold);
   padding: 0.5rem 0.75rem;
-  color: #d1d0c5;
   font-size: 0.85rem;
   line-height: 1.3;
+  border-radius: 12px;
 }
 
 .notification-highlight {
   display: block;
   font-weight: 600;
-  color: #f7ca38;
+  color: var(--color-gold);
 }
 
 .notification-message {

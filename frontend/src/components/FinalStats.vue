@@ -60,24 +60,30 @@ function tornarAlLobby() {
 
 <style scoped>
 .final-stats {
-  color: #d1d0c5;
+  color: var(--color-ink);
   text-align: center;
+  font-family: 'Courier New', monospace;
 }
 
 .final-stats h2 {
-  color: #e2b714;
+  color: var(--color-pink);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-shadow: 0 4px 0 var(--color-ink);
 }
 
 .progress-panel {
-  background: rgba(50, 52, 55, 0.85);
-  border-radius: 8px;
-  padding: 1rem;
+  background: linear-gradient(145deg, rgba(64, 231, 185, 0.25), rgba(246, 195, 72, 0.3));
+  border: 5px solid var(--color-ink);
+  border-radius: 32px;
+  padding: 1.5rem;
   margin-top: 1rem;
+  box-shadow: 0 18px 0 var(--color-ink);
 }
 
 .progress-item {
-  padding: 0.4rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.65rem 0;
+  border-bottom: 2px dashed rgba(27, 18, 48, 0.2);
 }
 
 .progress-item:last-child {
@@ -85,57 +91,63 @@ function tornarAlLobby() {
 }
 
 .progress-name {
-  font-weight: 600;
+  font-weight: 700;
   display: block;
   margin-bottom: 0.2rem;
+  text-transform: uppercase;
+  color: var(--color-blue);
 }
 
 .progress-row {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
 }
 
 .progress-bar {
   flex: 1;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.6);
   border-radius: 999px;
-  height: 8px;
+  height: 12px;
   overflow: hidden;
+  border: 2px solid rgba(27, 18, 48, 0.25);
 }
 
 .progress-fill {
   height: 100%;
-  background: #e2b714;
+  background: linear-gradient(120deg, var(--color-pink), var(--color-gold));
   border-radius: 999px;
   transition: width 0.2s ease;
 }
 
 .progress-fill.words {
-  background: #4caf50;
+  background: linear-gradient(120deg, var(--color-teal), var(--color-blue));
 }
 
 .progress-value {
   min-width: 48px;
   text-align: right;
+  color: var(--color-ink);
 }
 
 .return-button {
-  margin-top: 1.5rem;
-  background-color: #e2b714;
-  color: #2c2e31;
-  border: none;
-  border-radius: 8px;
-  padding: 0.8rem 2rem;
-  font-size: 1.1rem;
+  margin-top: 1.8rem;
+  background: linear-gradient(120deg, var(--color-pink), var(--color-violet));
+  color: var(--color-white);
+  border: 4px solid var(--color-ink);
+  border-radius: 36px;
+  padding: 0.9rem 2.5rem;
+  font-size: 1rem;
   font-weight: bold;
-  font-family: 'Roboto Mono', 'Courier New', monospace;
+  letter-spacing: 0.1em;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: transform 0.15s ease;
+  box-shadow: 0 12px 0 var(--color-ink);
 }
 
 .return-button:hover {
-  background-color: #f7ca38;
+  transform: translateY(-4px) rotate(-1deg);
+  box-shadow: 0 16px 0 var(--color-ink);
 }
 </style>

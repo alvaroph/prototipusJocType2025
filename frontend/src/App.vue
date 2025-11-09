@@ -107,109 +107,260 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <main>
-    <!-- VISTA 1: SALA D'ESPERA -->
-    <div v-if="vistaActual === 'salaEspera'" class="vista-container">
-      <h1>Type Racer Royale</h1>
-      <input type="text" v-model="nomJugador" placeholder="Introdueix el teu nom" />
-      <select v-model="salaSeleccionada">
-        <option value="general">Sala General</option>
-        <option value="arena">Sala Arena</option>
-        <option value="practica">Sala Pràctica</option>
-      </select>
-      <button @click="connectarAlServidor">Entra al Lobby </button>
-    </div>
+  <main class="app-shell">
+    <header class="app-header">
+      <div class="header-content">
+        <img src="/logo_speed_racer.png" alt="Type Racer Royale" class="game-logo" />
+        <div>
+          <p class="brand-kicker">Afina els teus dits i domina el desert digital.</p>
+          <div class="brand-badges">
+            <span>Multijugador</span>
+            <span>Temps real</span>
+            <span>Ratxes perfectes</span>
+          </div>
+        </div>
+      </div>
+    </header>
 
-    <!-- VISTA 2: LOBBY -->
-    <div v-else-if="vistaActual === 'lobby'" class="vista-container">
-      <h2>Jugadors Connectats</h2>
-      <ListaJugadors />
-      <button @click="demanarIniciPartida" :disabled="countdown !== null">
-        {{ countdown !== null ? `Comença en ${countdown}` : 'Comença a Jugar!' }}
-      </button>
-    </div>
+    <section class="play-zone">
+      <div class="vista-wrapper">
+        <!-- VISTA 1: SALA D'ESPERA -->
+        <div v-if="vistaActual === 'salaEspera'" class="vista-container">
+          <h1>Type Racer Royale</h1>
+          <input type="text" v-model="nomJugador" placeholder="Introdueix el teu nom" />
+          <select v-model="salaSeleccionada">
+            <option value="general">Sala General</option>
+            <option value="arena">Sala Arena</option>
+            <option value="practica">Sala Pràctica</option>
+          </select>
+          <button @click="connectarAlServidor">Entra al Lobby </button>
+        </div>
 
-    <!-- VISTA 3: JOC -->
-    <div v-else-if="vistaActual === 'joc'" class="vista-container">
-      <ListaJugadors />
-      <GameEngine :diccionario="diccionarioPartida" />
-    </div>
+        <!-- VISTA 2: LOBBY -->
+        <div v-else-if="vistaActual === 'lobby'" class="vista-container">
+          <h2>Jugadors Connectats</h2>
+          <ListaJugadors />
+          <button @click="demanarIniciPartida" :disabled="countdown !== null">
+            {{ countdown !== null ? `Comença en ${countdown}` : 'Comença a Jugar!' }}
+          </button>
+        </div>
 
-    <!-- VISTA 4: FINAL -->
-    <div v-else-if="vistaActual === 'final'" class="vista-container">
-      <FinalStats @tornar="vistaActual = 'lobby'" />
-    </div>
+        <!-- VISTA 3: JOC -->
+        <div v-else-if="vistaActual === 'joc'" class="vista-container">
+          <ListaJugadors />
+          <GameEngine :diccionario="diccionarioPartida" />
+        </div>
+
+        <!-- VISTA 4: FINAL -->
+        <div v-else-if="vistaActual === 'final'" class="vista-container">
+          <FinalStats @tornar="vistaActual = 'lobby'" />
+        </div>
+      </div>
+    </section>
   </main>
 </template>
 
 <style>
-main {
+@import url('https://fonts.googleapis.com/css2?family=Chelsea+Market&display=swap');
+
+:root {
+  --color-pink: #ea4f5e;
+  --color-gold: #f6c348;
+  --color-teal: #40e7b9;
+  --color-blue: #4f73f4;
+  --color-violet: #da65f9;
+  --color-ink: #1b1230;
+  --color-ink-soft: #24163e;
+  --color-paper: #fff9f3;
+  --color-cloud: #fef2ff;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: 'Courier New', monospace;
+  background: radial-gradient(circle at 10% 15%, rgba(64, 231, 185, 0.25) 0, transparent 45%),
+    radial-gradient(circle at 80% 0, rgba(218, 101, 249, 0.3) 0, transparent 50%),
+    linear-gradient(135deg, #120a22, #1a1031, #251341);
+  color: var(--color-paper);
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.06) 0 8px, transparent 8px 16px);
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  padding: clamp(1rem, 4vw, 3rem);
+}
+
+.app-header {
+  width: 100%;
+  background: linear-gradient(120deg, var(--color-violet), var(--color-blue));
+  border: 5px solid var(--color-ink);
+  border-radius: 32px;
+  box-shadow: 0 18px 0 var(--color-ink);
+  padding: 1.5rem;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.game-logo {
+  width: clamp(160px, 25vw, 220px);
+  filter: drop-shadow(0 10px 0 rgba(27, 18, 48, 0.4));
+}
+
+.brand-kicker {
+  margin: 0 0 0.8rem;
+  font-size: 1rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.brand-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.brand-badges span {
+  background: var(--color-gold);
+  color: var(--color-ink);
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  border: 3px solid var(--color-ink);
+  box-shadow: 0 6px 0 rgba(27, 18, 48, 0.4);
+}
+
+.play-zone {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto 3rem;
+}
+
+.vista-wrapper {
+  width: 100%;
   display: flex;
   justify-content: center;
-  align-items: center;
-  min-height: 80vh;
-  text-align: center;
 }
 
 .vista-container {
-  background-color: #2c2e31;
-  padding: 2rem 3rem;
-  border-radius: 12px;
   width: 100%;
-  max-width: 600px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  padding: 2.5rem clamp(1.5rem, 4vw, 3rem);
+  border-radius: 40px;
+  background:
+    radial-gradient(circle at top right, rgba(64, 231, 185, 0.35), transparent 60%),
+    linear-gradient(135deg, var(--color-cloud), var(--color-paper));
+  border: 5px solid var(--color-ink);
+  box-shadow:
+    0 24px 0 var(--color-ink),
+    0 30px 40px rgba(0, 0, 0, 0.35);
+  position: relative;
+  text-align: center;
+}
+
+.vista-container::before {
+  content: '';
+  position: absolute;
+  inset: 18px;
+  border-radius: 28px;
+  border: 3px dashed rgba(27, 18, 48, 0.2);
+  background: repeating-linear-gradient(-45deg, rgba(246, 195, 72, 0.15) 0 10px, transparent 10px 20px);
+  pointer-events: none;
+}
+
+h1, h2 {
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--color-ink);
+  text-shadow: 0 3px 0 rgba(255, 255, 255, 0.6);
 }
 
 h1 {
-  color: #e2b714;
-  font-size: 2.5rem;
+  font-size: clamp(2rem, 4vw, 2.8rem);
   margin-bottom: 1rem;
 }
 
 h2 {
-  color: #d1d0c5;
-  font-size: 1.8rem;
+  font-size: clamp(1.5rem, 3vw, 2rem);
   margin-bottom: 1.5rem;
 }
 
-input[type="text"] {
-  background-color: #222326;
-  color: #e2b714;
-  border: 2px solid #646669;
-  border-radius: 8px;
-  padding: 0.75rem 1rem;
-  font-size: 1.2rem;
-  width: 80%;
-  max-width: 400px;
+input[type='text'],
+select {
+  width: 85%;
+  max-width: 420px;
+  margin: 0 auto 1rem;
+  display: block;
   text-align: center;
-  font-family: 'Roboto Mono', 'Courier New', monospace;
-  outline: none;
-  margin-bottom: 1.5rem;
-  transition: border-color 0.2s;
-}
-
-input[type="text"]:focus {
-  border-color: #e2b714;
+  font-size: 1rem;
+  padding: 0.9rem 1.2rem;
+  border-radius: 999px;
+  border: 4px solid var(--color-ink);
+  background: #ffffff;
+  color: var(--color-ink);
+  font-weight: 700;
+  text-transform: uppercase;
+  box-shadow: 0 6px 0 rgba(27, 18, 48, 0.4);
 }
 
 button {
-  background-color: #e2b714;
-  color: #2c2e31;
-  border: none;
-  border-radius: 8px;
-  padding: 0.8rem 2rem;
-  font-size: 1.2rem;
-  font-weight: bold;
-  font-family: 'Roboto Mono', 'Courier New', monospace;
+  background: linear-gradient(120deg, var(--color-pink), var(--color-violet));
+  color: #fff;
+  border: 4px solid var(--color-ink);
+  border-radius: 32px;
+  padding: 0.95rem 2.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: transform 0.15s ease;
   display: block;
-  width: 80%;
-  max-width: 400px;
-  margin: 1rem auto 0;
+  width: 85%;
+  max-width: 420px;
+  margin: 1.25rem auto 0;
+  box-shadow: 0 10px 0 var(--color-ink);
 }
 
 button:hover {
-  background-color: #f7ca38;
+  transform: translateY(-4px) rotate(-1deg);
+  box-shadow: 0 14px 0 var(--color-ink);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+  box-shadow: 0 6px 0 var(--color-ink);
+}
+
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .vista-container {
+    border-radius: 28px;
+  }
 }
 </style>

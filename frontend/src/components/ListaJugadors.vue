@@ -16,15 +16,21 @@ import communicationManager from '../services/communicationManager.js';
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 1rem;
-  padding: 0.5rem;
-  font-family: 'Roboto Mono', 'Courier New', monospace;
-  color: #646669; /* Color de texto secundario, como las palabras pendientes */
+  gap: 0.8rem;
+  padding: 0.75rem 0;
+  font-family: 'Courier New', monospace;
+  color: var(--color-ink);
 }
-.jugador-item {
-  background-color: #2c2e31; /* Fondo oscuro como los contenedores */
-  padding: 0.25rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.9rem;
+
+.jugadors-container span {
+  background: linear-gradient(120deg, rgba(64, 231, 185, 0.35), rgba(246, 195, 72, 0.4));
+  color: var(--color-ink);
+  padding: 0.5rem 1.1rem;
+  border-radius: 24px;
+  border: 3px solid var(--color-ink);
+  box-shadow: 0 6px 0 rgba(27, 18, 48, 0.4);
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
 }
 </style>

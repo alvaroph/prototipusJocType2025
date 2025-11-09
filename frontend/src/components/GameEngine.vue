@@ -321,133 +321,185 @@ function validarProgres() {
 </script>
 
 <style>
-/* Estructura principal */
 .game-container {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  gap: 4rem;
-  padding-top: 10vh;
+  gap: 2rem;
+  padding: 2rem;
+  position: relative;
 }
 
-/* Estilos globales inspirados en Monkeytype */
-body {
-  background-color: #323437;
-  color: #d1d0c5;
-  font-family: 'Roboto Mono', 'Courier New', monospace;
-  min-height: 100vh;
-  margin: 0;
+.game-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.18) 1px, transparent 1px);
+  background-size: 18px 18px;
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+
+.game-engine,
+.stats-panel {
+  position: relative;
+  background: var(--color-paper);
+  border: 5px solid var(--color-ink);
+  border-radius: 32px;
+  box-shadow:
+    0 18px 0 var(--color-ink),
+    0 25px 45px rgba(0, 0, 0, 0.3);
   padding: 2rem;
 }
 
 .game-engine {
   max-width: 900px;
-  margin: 0 auto;
   text-align: center;
+  color: var(--color-ink);
+}
+
+.game-engine::after {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  border-radius: 24px;
+  border: 3px dashed rgba(27, 18, 48, 0.2);
+  pointer-events: none;
 }
 
 .paraules-container {
-  font-size: 1.5rem;
-  line-height: 2.5rem;
-  margin-bottom: 2rem;
-  padding: 1rem;
-  background-color: #2c2e31;
-  border-radius: 8px;
-  position: relative;
-  display: block; /* Para que las palabras se apilen */
-  height: 13rem; /* 2.5rem de line-height * 5 + padding */
-  overflow-y: auto; /* Scroll vertical si es necesario */
+  font-size: 1.4rem;
+  line-height: 2.3rem;
+  margin-bottom: 1.5rem;
+  padding: 1.4rem;
+  background:
+    radial-gradient(circle at 18% 25%, rgba(64, 231, 185, 0.25), transparent 55%),
+    var(--color-cloud);
+  border: 4px solid var(--color-ink);
+  border-radius: 24px;
+  height: 13rem;
+  overflow-y: auto;
+  box-shadow: inset 0 12px 0 rgba(255, 255, 255, 0.5);
 }
+
 
 .paraula {
   margin: 0.2em 0.5em;
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  color: #646669; /* Color para palabras pendientes */
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  color: var(--color-ink);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: 2px solid rgba(27, 18, 48, 0.2);
+  background: rgba(255, 255, 255, 0.6);
 }
 
 .paraula-activa {
-  background-color: #e2b714; /* Color amarillo del tema */
-  color: #2c2e31; /* Texto oscuro para contraste */
-}
-
-/* Aseguramos que el texto dentro de la palabra activa también cambie */
-.paraula-activa .lletra-correcta {
-  color: #2c2e31;
+  background: linear-gradient(110deg, var(--color-pink), var(--color-violet));
+  color: #fff;
+  border-color: var(--color-ink);
+  box-shadow: 0 8px 0 rgba(27, 18, 48, 0.6);
 }
 
 .paraula-completada {
-  color: #d1d0c5; /* Color para palabras completadas */
+  color: var(--color-teal);
+  border-color: rgba(64, 231, 185, 0.4);
 }
 
+
 .lletra-pendent {
-  color: #646669;
+  color: rgba(27, 18, 48, 0.4);
+  opacity: 0.5;
 }
 
 .lletra-correcta {
-  color: #d1d0c5; /* Letras correctas en la palabra activa */
+  color: var(--color-ink);
 }
 
 .lletra-incorrecta {
-  color: #ca4754; /* Letras incorrectas */
-  text-decoration: underline;
+  color: var(--color-gold);
+  text-shadow: 0 0 6px rgba(246, 195, 72, 0.6);
 }
 
 .text-input {
-  background-color: #2c2e31;
-  color: #e2b714; /* Color del texto del input (amarillo) */
-  border: 2px solid #646669;
-  border-radius: 8px;
-  padding: 0.75rem 1rem;
-  font-size: 1.2rem;
+  background: #fff;
+  color: var(--color-ink);
+  border: 4px solid var(--color-ink);
+  border-radius: 28px;
+  padding: 0.9rem 1.5rem;
+  font-size: 1rem;
   width: 80%;
-  max-width: 500px;
+  max-width: 480px;
   text-align: center;
-  font-family: 'Roboto Mono', 'Courier New', monospace;
-  outline: none;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+  box-shadow: 0 8px 0 rgba(27, 18, 48, 0.4);
 }
 
 .text-input:focus {
-  border-color: #e2b714;
+  outline: none;
+  border-color: var(--color-blue);
+  box-shadow: 0 10px 0 rgba(27, 18, 48, 0.4), 0 0 0 4px rgba(79, 115, 244, 0.25);
 }
 
-.debug-info, p {
-  color: #646669; /* Color para texto secundario */
-  margin-top: 1rem;
+.debug-info {
+  color: var(--color-blue);
+  font-size: 0.9rem;
+  background: rgba(79, 115, 244, 0.08);
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  border-radius: 16px;
+  border: 2px solid rgba(79, 115, 244, 0.3);
 }
 
-/* Panel de estadísticas */
 .stats-panel {
-  width: 250px;
-  padding: 1rem;
-  background-color: #2c2e31;
-  border-radius: 8px;
-  color: #646669;
+  width: 280px;
+  color: var(--color-ink);
+  background: linear-gradient(150deg, rgba(246, 195, 72, 0.2), rgba(64, 231, 185, 0.25));
+}
+
+.stats-panel::after {
+  content: '';
+  position: absolute;
+  inset: 10px;
+  border-radius: 24px;
+  border: 3px dashed rgba(27, 18, 48, 0.2);
+  pointer-events: none;
 }
 
 .stats-panel h3 {
-  color: #e2b714;
-  margin-top: 0;
-  margin-bottom: 1.5rem;
-  text-align: center;
+  margin: 0 0 1rem;
+  color: var(--color-pink);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
 }
+
 
 .stat-item {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 0.75rem;
-  font-size: 0.9rem;
+  align-items: center;
+  padding: 0.6rem 0;
+  border-bottom: 1px dashed rgba(27, 18, 48, 0.2);
+  font-size: 0.85rem;
+  text-transform: uppercase;
 }
 
 .stat-streak {
-  border-bottom: 1px solid rgba(100, 102, 105, 0.4);
-  padding-bottom: 0.5rem;
-  margin-bottom: 1rem;
+  border-bottom: 2px solid var(--color-gold);
+  padding-bottom: 0.7rem;
+  margin-bottom: 0.9rem;
+  background: rgba(246, 195, 72, 0.2);
+  border-radius: 18px;
+  padding: 0.7rem;
 }
 
 .stat-streak-count {
-  font-weight: 600;
-  color: #e2b714;
+  font-size: 1.3rem;
+  color: var(--color-gold);
 }
 
 .stat-details {
@@ -456,44 +508,56 @@ body {
 }
 
 .stat-errors {
-  color: #ca4754;
+  color: var(--color-pink);
 }
 
 .stat-errors.no-errors {
-  color: #70a75c; /* Un verde agradable a la vista */
+  color: var(--color-teal);
 }
 
 .keyboard-row {
   display: flex;
   justify-content: center;
-  margin-bottom: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 0.4rem;
 }
 
 .keyboard-key {
-  background-color: #4a4d50;
-  border: 1px solid #323437;
-  border-radius: 6px;
-  color: #d1d0c5;
-  font-size: 1.2rem;
-  font-weight: bold;
-  margin: 0 4px;
-  padding: 12px 18px;
-  transition: all 0.1s ease-in-out;
-  box-shadow: 0 2px 0 #2c2e31;
-  transform: translateY(0);
+  background: linear-gradient(150deg, var(--color-gold), var(--color-teal));
+  border: 4px solid var(--color-ink);
+  border-radius: 18px;
+  color: var(--color-ink);
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: 'Chelsea Market', system-ui;
+  margin: 0.2rem;
+  padding: 0.65rem 1.1rem;
+  box-shadow: 0 6px 0 rgba(27, 18, 48, 0.6);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  min-width: 44px;
+  text-align: center;
 }
 
-.tecla-premuda {
-  background-color: #e2b714;
-  color: #2c2e31;
-  transform: translateY(2px);
-  box-shadow: none;
+.keyboard-key.tecla-premuda {
+  transform: translateY(3px);
+  box-shadow: 0 3px 0 rgba(27, 18, 48, 0.4);
+  background: linear-gradient(150deg, var(--color-pink), var(--color-violet));
+  color: #fff;
 }
 
-.tecla-remota {
-  background-color: #4caf50;
-  color: #1e1f22;
-  box-shadow: none;
-  transform: translateY(1px);
+.keyboard-key.tecla-remota {
+  background: linear-gradient(150deg, var(--color-blue), var(--color-teal));
+  box-shadow: 0 3px 0 rgba(20, 12, 35, 0.6);
+}
+
+@media (max-width: 1024px) {
+  .game-container {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .stats-panel {
+    width: 100%;
+  }
 }
 </style>
