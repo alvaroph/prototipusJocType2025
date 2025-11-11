@@ -1,9 +1,10 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import GameEngine from './components/GameEngine.vue';
 import communicationManager from './services/communicationManager.js';
 import ListaJugadors from './components/ListaJugadors.vue';
 import FinalStats from './components/FinalStats.vue';
+import RealtimeNotifications from './components/RealtimeNotifications.vue';
 
 // Estat per controlar quina vista es mostra
 const vistaActual = ref('salaEspera'); // 'salaEspera', 'lobby', 'joc'
@@ -19,8 +20,15 @@ let gameFinishedListener = null;
 const diccionarioPartida = ref([]);
 const temaPartida = ref('');
 
+const gameEngineRef = ref(null);
 
-
+watch(vistaActual, (novaVista) => {
+  if (novaVista === 'joc') {
+    nextTick(() => {
+      gameEngineRef.value?.focusInput();
+    });
+  }
+});
  
 function connectarAlServidor() {
   if (nomJugador.value.trim() === '') {
@@ -130,9 +138,10 @@ onUnmounted(() => {
     </div>
 
     <!-- VISTA 3: JOC -->
-    <div v-else-if="vistaActual === 'joc'" class="vista-container">
+    <div v-else-if="vistaActual === 'joc'" class="vista-container vista-joc">
+      <RealtimeNotifications />
       <ListaJugadors />
-      <GameEngine :diccionario="diccionarioPartida" />
+      <GameEngine ref="gameEngineRef" :diccionario="diccionarioPartida" :tema="temaPartida" />
     </div>
 
     <!-- VISTA 4: FINAL -->
@@ -159,6 +168,29 @@ main {
   max-width: 600px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }
+
+.vista-joc {
+  max-width: 1200px;
+  display: grid;
+  grid-template-areas:
+    "notifications notifications"
+    "players game";
+  grid-template-columns: 250px 1fr;
+  gap: 2rem;
+}
+
+.vista-joc > .realtime-notifications {
+  grid-area: notifications;
+}
+
+.vista-joc > .jugadors-container {
+  grid-area: players;
+}
+
+.vista-joc > .game-container {
+  grid-area: game;
+}
+
 
 h1 {
   color: #e2b714;
@@ -189,6 +221,32 @@ input[type="text"] {
 }
 
 input[type="text"]:focus {
+  border-color: #e2b714;
+}
+
+select {
+  background-color: #222326;
+  color: #e2b714;
+  border: 2px solid #646669;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 1.2rem;
+  width: 85%;
+  max-width: 400px;
+  text-align: center;
+  font-family: 'Roboto Mono', 'Courier New', monospace;
+  outline: none;
+  margin-bottom: 1.5rem;
+  transition: border-color 0.2s;
+  -webkit-appearance: none; /* Remove default arrow for Chrome/Safari */
+  -moz-appearance: none; /* Remove default arrow for Firefox */
+  appearance: none; /* Remove default arrow */
+  background-image: url("data:image/svg+xml;utf8,<svg fill='%23e2b714' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+}
+
+select:focus {
   border-color: #e2b714;
 }
 

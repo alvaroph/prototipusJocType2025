@@ -1,0 +1,56 @@
+# --- Node.js ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+
+# --- Build output ---
+dist/
+build/
+coverage/
+test-results/
+
+# --- Environment variables ---
+.env
+.env.*
+!.env.example
+
+# --- Logs and temp files ---
+*.log
+*.tmp
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# --- Docker ---
+**/Dockerfile.dev
+**/.dockerignore
+docker-compose*.yml
+
+# --- IDEs & Editors ---
+.vscode/
+.idea/
+*.iml
+
+# --- Frontend (Vite/Vue) ---
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.cache/
+
+# --- Backend ---
+backend/node_modules/
+backend/.env
+backend/.cache/
+
+# --- System files ---
+*.bak
+*.orig
+*.old
+
+# --- Proxy ---
+proxy/node_modules/
+proxy/.env

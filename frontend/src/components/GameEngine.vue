@@ -1,6 +1,7 @@
 <template>
   <div class="game-container">
     <div class="game-engine">
+      <div class="tema-partida" v-if="tema">Tema: {{ tema }}</div>
       <div class="paraules-container">
         <!-- Iterem sobre la llista de paraules -->
         <div v-for="(paraula, index) in estatDelJoc.paraules" :key="paraula.id" class="paraula"
@@ -30,6 +31,7 @@
           </span>
         </div>
       <input 
+        ref="textInput"
         type="text" 
         class="text-input"
         v-model="estatDelJoc.textEntrat"
@@ -54,7 +56,6 @@
           <span class="stat-errors" :class="{ 'no-errors': actual.errors === 0 }">{{ actual.errors }} errors</span>
         </span>
       </div>
-      <RealtimeNotifications />
     </div>
   </div>
 </template>
@@ -62,12 +63,22 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import communicationManager from '../services/communicationManager.js';
-import RealtimeNotifications from './RealtimeNotifications.vue';
 
 const props = defineProps({
   diccionario: {
     type: Array,
     default: () => [],
+  },
+  tema: {
+    type: String,
+    default: '',
+  },
+});
+
+const textInput = ref(null);
+defineExpose({
+  focusInput: () => {
+    textInput.value?.focus();
   },
 });
 
@@ -346,6 +357,12 @@ body {
   text-align: center;
 }
 
+.tema-partida {
+  color: #e2b714;
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+}
+
 .paraules-container {
   font-size: 1.5rem;
   line-height: 2.5rem;
@@ -355,8 +372,8 @@ body {
   border-radius: 8px;
   position: relative;
   display: block; /* Para que las palabras se apilen */
-  height: 13rem; /* 2.5rem de line-height * 5 + padding */
-  overflow-y: auto; /* Scroll vertical si es necesario */
+  height: 14rem; /* Ajustado para 5 palabras */
+  overflow-y: hidden; /* Ocultar scroll */
 }
 
 .paraula {
