@@ -1,38 +1,24 @@
 # prototipusJocType2025
 
-This template should help get you started developing with Vue 3 in Vite.
+Aplicació Vue 3 + Vite amb integració de sockets i suites de testing configurades.
 
-## Recommended IDE Setup
+## Scripts principals
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
-
-## Recommended Browser Setup
-
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd) 
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
-```sh
-npm install
+```bash
+npm install        # instal·lar dependències
+npm run dev        # entorn de desenvolupament
+npm run build      # bundle de producció
 ```
 
-### Compile and Hot-Reload for Development
+## Testing
 
-```sh
-npm run dev
-```
+| Tipus                | Comanda                  | Eines                                     |
+|----------------------|--------------------------|-------------------------------------------|
+| Tests unitàries      | `npm run test:unit`      | Jest + jsdom (serveis i lògica)           |
+| Tests de components  | `npm run test:component` | Jest + Vue Test Utils + vue3-jest         |
+| Tests e2e            | `npm run test:e2e`       | Playwright (arrenca `npm run dev` sol)    |
+| Tot el conjunt       | `npm run test:all`       | Executa unit + components + e2e en cadena |
 
-### Compile and Minify for Production
+> Per Playwright cal una sola instal·lació dels navegadors: `npx playwright install`.
 
-```sh
-npm run build
-```
+Els tests de components reutilitzen mocks de `communicationManager`, de manera que no cal aixecar el backend per executar-los.

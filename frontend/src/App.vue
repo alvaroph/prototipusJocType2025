@@ -192,6 +192,32 @@ input[type="text"]:focus {
   border-color: #e2b714;
 }
 
+select {
+  background-color: #222326;
+  color: #e2b714;
+  border: 2px solid #646669;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 1.2rem;
+  width: 85%;
+  max-width: 400px;
+  text-align: center;
+  font-family: 'Roboto Mono', 'Courier New', monospace;
+  outline: none;
+  margin-bottom: 1.5rem;
+  transition: border-color 0.2s;
+  -webkit-appearance: none; /* Remove default arrow for Chrome/Safari */
+  -moz-appearance: none; /* Remove default arrow for Firefox */
+  appearance: none; /* Remove default arrow */
+  background-image: url("data:image/svg+xml;utf8,<svg fill='%23e2b714' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+}
+
+select:focus {
+  border-color: #e2b714;
+}
+
 button {
   background-color: #e2b714;
   color: #2c2e31;

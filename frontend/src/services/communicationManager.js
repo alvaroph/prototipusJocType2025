@@ -1,12 +1,36 @@
 import { io } from 'socket.io-client';
 import { reactive } from 'vue';
 
-const DEFAULT_SOCKET_URL = (import.meta.env?.VITE_SOCKET_URL || '').trim().replace(/\/$/, '');
-const DEFAULT_STREAK_TARGET =  2;
+function getImportMetaEnv() {
+  try {
+    return Function('return typeof import !== "undefined" ? import.meta?.env : undefined;')();
+  } catch (error) {
+    return undefined;
+  }
+}
+
+function resolveSocketUrl() {
+  if (typeof globalThis !== 'undefined' && typeof globalThis.APP_SOCKET_URL === 'string') {
+    return globalThis.APP_SOCKET_URL;
+  }
+  if (typeof process !== 'undefined' && process.env?.VITE_SOCKET_URL) {
+    return process.env.VITE_SOCKET_URL;
+  }
+  const metaEnv = getImportMetaEnv();
+  if (metaEnv?.VITE_SOCKET_URL) {
+    return metaEnv.VITE_SOCKET_URL;
+  }
+  return '';
+}
+
+const DEFAULT_SOCKET_URL = resolveSocketUrl().trim().replace(/\/$/, '');
+const DEFAULT_STREAK_TARGET = 2;
 const NOTIFICATION_LIFETIME_MS = 5000;
 
-class CommunicationManager {
-  constructor() {
+const createSocketConnection = () => (DEFAULT_SOCKET_URL ? io(DEFAULT_SOCKET_URL) : io());
+
+export class CommunicationManager {
+  constructor(socketFactory = createSocketConnection) {
     this.state = reactive({
       jugadors: [],
       room: '',
@@ -21,7 +45,7 @@ class CommunicationManager {
     });
 
     // Connecta amb el servidor de Socket.IO
-    this.socket = DEFAULT_SOCKET_URL ? io(DEFAULT_SOCKET_URL) : io();
+    this.socket = socketFactory();
 
     // Assigna els listeners una sola vegada
     this.setupListeners();
