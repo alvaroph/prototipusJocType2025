@@ -84,6 +84,7 @@ function demanarIniciPartida() {
   }
   communicationManager.requestGameStart();
   // Evento personalizado de ejemplo
+  console.log('Enviant esdeveniment gtag per nova partida manual i sala' + (communicationManager.state.room || 'desconeguda'));
   gtag('event', 'nova_partida', {
     'metodo': 'manual',
     'tipo_joc': 'normal',
