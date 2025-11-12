@@ -83,6 +83,12 @@ function demanarIniciPartida() {
     return;
   }
   communicationManager.requestGameStart();
+  // Evento personalizado de ejemplo
+  gtag('event', 'nova_partida', {
+    'metodo': 'manual',
+    'tipo_joc': 'normal',
+    'sala': communicationManager.state.room || 'desconeguda'
+  });
 }
 
 onMounted(() => {
